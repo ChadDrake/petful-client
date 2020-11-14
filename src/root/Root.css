@@ -1,0 +1,10 @@
+h1 {
+  border: 1px solid grey;
+}
+
+.all {
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+  align-items: center;
+}
