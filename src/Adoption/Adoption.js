@@ -31,6 +31,10 @@ export default class Adoption extends Component {
     error: null,
     autoAdopt: true,
     count: 0,
+    adopted: null,
+    name: null,
+    inLine: false,
+    message: null,
   };
   updatePets = () => {
     return petsService.getPets().then((res) => {
@@ -40,7 +44,13 @@ export default class Adoption extends Component {
 
   updatePeople = () => {
     return peopleService.getPeople().then((res) => {
-      this.setState({ people: [...res, "Me"] });
+      if (this.state.name) {
+        let me = this.state.name;
+        this.setState({ people: [...res, me] });
+        peopleService.addPerson(me);
+      } else {
+        this.setState({ people: [...res] });
+      }
     });
   };
   adoptCat = () => {
@@ -48,6 +58,9 @@ export default class Adoption extends Component {
       this.setState((prevState) => ({
         people: prevState.people.slice(1),
       }));
+      this.setState({ name: null });
+      this.setState({ adopted: "You have adopted a cat!" });
+      this.setState({ inLine: false });
     });
   };
   adoptDog = () => {
@@ -55,6 +68,9 @@ export default class Adoption extends Component {
       this.setState((prevState) => ({
         people: prevState.people.slice(1),
       }));
+      this.setState({ name: null });
+      this.setState({ adopted: "You have adopted a dog!" });
+      this.setState({ inLine: false });
     });
   };
   peopleString = () => {
@@ -82,7 +98,7 @@ export default class Adoption extends Component {
 
   serveACustomer = () => {
     if (!this.state.error) {
-      if (this.state.people[0] !== "Me") {
+      if (this.state.people && this.state.people[0] !== this.state.name) {
         if (this.state.people && this.state.people.length > 1) {
           let die = Math.floor(Math.random() * 2) + 1;
           let type = "cat";
@@ -101,23 +117,43 @@ export default class Adoption extends Component {
             })
             .catch((e) => this.setState({ error: e.message }));
         }
-      } else if (this.state.people && this.state.people.length < 5) {
+      }
+      if (this.state.people && this.state.people.length < 5) {
         let people = ["Chad Drake", "John Smith", "Jane Doe", "Dr. Jones"];
         let person = people[this.state.count % people.length];
 
-        this.setState((prevState) => ({
-          people: [...prevState.people, person],
-        }));
+        peopleService.addPerson(person).then((res) => {
+          this.setState((prevState) => ({
+            people: [...prevState.people, person],
+          }));
 
-        this.setState((prevState) => ({ count: prevState.count + 1 }));
+          this.setState((prevState) => ({ count: prevState.count + 1 }));
+        });
       }
     }
   };
-
+  getInLine = (e) => {
+    e.preventDefault();
+    const { name } = e.target;
+    if (!this.state.inLine) {
+      this.setState({ name: name.value });
+      this.updatePeople();
+      this.setState({ inLine: true });
+    } else {
+      this.setState({ message: "You are already in line!" });
+    }
+  };
   render() {
-    if (this.state.people && this.state.people[0] !== "Me") {
+    if (this.state.people && this.state.people[0] !== this.state.name) {
       return (
         <section>
+          <p>{this.state.message}</p>
+          <form onSubmit={this.getInLine}>
+            <label htmlFor="name">Your name:</label>
+            <input type="text" id="name" name="name" />
+            <input type="submit" value="Get In Line" />
+          </form>
+          <p>{this.state.adopted}</p>
           <p>
             The current queue is: {this.peopleString()}. The pets up for
             adoption are:
@@ -155,6 +191,7 @@ export default class Adoption extends Component {
     } else {
       return (
         <section>
+          <p>{this.state.adopted}</p>
           <p>
             The current queue is: {this.peopleString()}. The pets up for
             adoption are:
@@ -187,12 +224,8 @@ export default class Adoption extends Component {
             />
             <br />
           </div>
-          <Link to="/" onClick={this.adoptCat}>
-            <button>Adopt the cat!</button>
-          </Link>
-          <Link to="/" onClick={this.adoptDog}>
-            <button>Adopt the dog!</button>
-          </Link>
+          <button onClick={this.adoptCat}>Adopt the cat!</button>
+          <button onClick={this.adoptDog}>Adopt the dog!</button>
         </section>
       );
     }
